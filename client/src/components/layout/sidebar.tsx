@@ -6,6 +6,7 @@ import {
   DollarSign, 
   FolderOpen, 
   MessageCircle, 
+  Target,
   Users, 
   Megaphone, 
   BarChart3,
@@ -17,6 +18,7 @@ const employeeNavItems = [
   { path: "/pay", label: "Pay & Benefits", icon: DollarSign },
   { path: "/records", label: "My Records", icon: FolderOpen },
   { path: "/messages", label: "Messages", icon: MessageCircle },
+  { path: "/performance", label: "Performance Reviews", icon: Target },
 ];
 
 const adminNavItems = [
@@ -45,11 +47,9 @@ export default function Sidebar() {
             
             return (
               <li key={item.path}>
-                <Link href={item.path}>
-                  <a className={cn("nav-link", isActive && "active")}>
-                    <Icon size={20} />
-                    <span>{item.label}</span>
-                  </a>
+                <Link href={item.path} className={cn("nav-link", isActive && "active")}>
+                  <Icon size={20} />
+                  <span>{item.label}</span>
                 </Link>
               </li>
             );
@@ -68,11 +68,9 @@ export default function Sidebar() {
                   
                   return (
                     <li key={item.path}>
-                      <Link href={item.path}>
-                        <a className={cn("nav-link", isActive && "active")}>
-                          <Icon size={20} />
-                          <span>{item.label}</span>
-                        </a>
+                      <Link href={item.path} className={cn("nav-link", isActive && "active")}>
+                        <Icon size={20} />
+                        <span>{item.label}</span>
                       </Link>
                     </li>
                   );
