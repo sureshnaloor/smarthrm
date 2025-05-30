@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 98%; /* #F5F5F5 */
+  --foreground: 218 12% 26%; /* #424242 */
+  --muted: 210 40% 98%;
+  --muted-foreground: 215 16% 47%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 218 12% 26%;
+  --card: 0 0% 100%;
+  --card-foreground: 218 12% 26%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --primary: 207 90% 54%; /* #1976D2 */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 84% 5%;
+  --accent: 122 39% 49%; /* #4CAF50 */
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 207 90% 54%;
+  --radius: 0.75rem;
+  --warning: 36 100% 50%; /* #FF9800 */
+  --warning-foreground: 210 40% 98%;
+  --chart-1: 207 90% 54%;
+  --chart-2: 122 39% 49%;
+  --chart-3: 36 100% 50%;
+  --chart-4: 0 84% 60%;
+  --chart-5: 280 100% 70%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 218 12% 26%;
+  --sidebar-primary: 207 90% 54%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 210 40% 96%;
+  --sidebar-accent-foreground: 222 84% 5%;
+  --sidebar-border: 214 32% 91%;
+  --sidebar-ring: 207 90% 54%;
+}
+
+.dark {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 95%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 4%;
+  --popover-foreground: 0 0% 95%;
+  --card: 240 10% 4%;
+  --card-foreground: 0 0% 95%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 207 90% 54%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 95%;
+  --accent: 122 39% 49%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 95%;
+  --ring: 207 90% 54%;
+  --warning: 36 100% 50%;
+  --warning-foreground: 210 40% 98%;
+  --chart-1: 207 90% 54%;
+  --chart-2: 122 39% 49%;
+  --chart-3: 36 100% 50%;
+  --chart-4: 0 84% 60%;
+  --chart-5: 280 100% 70%;
+  --sidebar-background: 240 10% 4%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 207 90% 54%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 207 90% 54%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Custom styles for HR system */
+.hr-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%);
+}
+
+.admin-gradient {
+  background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+}
+
+.stat-card {
+  @apply bg-card rounded-xl p-6 shadow-sm border border-border;
+}
+
+.nav-link {
+  @apply flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200;
+}
+
+.nav-link.active {
+  @apply bg-primary text-primary-foreground;
+}
+
+.nav-link:not(.active) {
+  @apply text-muted-foreground hover:bg-accent hover:text-accent-foreground;
+}
+
+.page-header {
+  @apply text-3xl font-bold mb-2 text-foreground;
+}
+
+.page-subtitle {
+  @apply text-muted-foreground mb-4;
+}
+
+.quick-action-card {
+  @apply flex flex-col items-center p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer;
+}
+
+.notification-dot {
+  @apply absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center;
+}
+
+.employee-avatar {
+  @apply w-10 h-10 rounded-full flex items-center justify-center text-white font-medium;
+}
+
+.status-badge {
+  @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.status-active {
+  @apply bg-accent/10 text-accent;
+}
+
+.status-pending {
+  @apply bg-warning/10 text-warning;
+}
+
+.status-inactive {
+  @apply bg-muted text-muted-foreground;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply animate-spin rounded-full h-6 w-6 border-b-2 border-primary;
+}
