@@ -7,6 +7,11 @@ import {
   employeeDocuments,
   leaveBalances,
   leaveAccruals,
+  costCenters,
+  timesheetEntries,
+  payrollComponents,
+  payrollCalculations,
+  csvUploads,
   kpiDefinitions,
   reviewCycles,
   employeeKpis,
@@ -28,6 +33,16 @@ import {
   type InsertLeaveBalance,
   type LeaveAccrual,
   type InsertLeaveAccrual,
+  type CostCenter,
+  type InsertCostCenter,
+  type TimesheetEntry,
+  type InsertTimesheetEntry,
+  type PayrollComponent,
+  type InsertPayrollComponent,
+  type PayrollCalculation,
+  type InsertPayrollCalculation,
+  type CsvUpload,
+  type InsertCsvUpload,
   type KpiDefinition,
   type InsertKpiDefinition,
   type ReviewCycle,
@@ -122,6 +137,41 @@ export interface IStorage {
   
   deductLeaveBalance(employeeId: number, leaveType: string, days: number): Promise<boolean>;
   validateLeaveRequest(employeeId: number, leaveType: string, days: number): Promise<{valid: boolean, message: string}>;
+  
+  // Cost Center operations
+  getAllCostCenters(): Promise<CostCenter[]>;
+  getCostCenter(id: number): Promise<CostCenter | undefined>;
+  createCostCenter(costCenter: InsertCostCenter): Promise<CostCenter>;
+  updateCostCenter(id: number, costCenter: Partial<InsertCostCenter>): Promise<CostCenter>;
+  
+  // Timesheet operations
+  getTimesheetEntriesByEmployee(employeeId: number, startDate?: string, endDate?: string): Promise<TimesheetEntry[]>;
+  getTimesheetEntriesByPeriod(period: string): Promise<TimesheetEntry[]>;
+  createTimesheetEntry(entry: InsertTimesheetEntry): Promise<TimesheetEntry>;
+  bulkCreateTimesheetEntries(entries: InsertTimesheetEntry[]): Promise<TimesheetEntry[]>;
+  updateTimesheetEntry(id: number, entry: Partial<InsertTimesheetEntry>): Promise<TimesheetEntry>;
+  deleteTimesheetEntry(id: number): Promise<void>;
+  
+  // Payroll Component operations
+  getPayrollComponentsByEmployee(employeeId: number): Promise<PayrollComponent[]>;
+  getCurrentPayrollComponent(employeeId: number): Promise<PayrollComponent | undefined>;
+  createPayrollComponent(component: InsertPayrollComponent): Promise<PayrollComponent>;
+  updatePayrollComponent(id: number, component: Partial<InsertPayrollComponent>): Promise<PayrollComponent>;
+  
+  // Payroll Calculation operations
+  getPayrollCalculationsByEmployee(employeeId: number): Promise<PayrollCalculation[]>;
+  getPayrollCalculationByPeriod(employeeId: number, period: string): Promise<PayrollCalculation | undefined>;
+  createPayrollCalculation(calculation: InsertPayrollCalculation): Promise<PayrollCalculation>;
+  updatePayrollCalculation(id: number, calculation: Partial<InsertPayrollCalculation>): Promise<PayrollCalculation>;
+  calculatePayrollForEmployee(employeeId: number, period: string): Promise<PayrollCalculation>;
+  bulkCalculatePayroll(period: string): Promise<PayrollCalculation[]>;
+  
+  // CSV Upload operations
+  getCsvUploads(): Promise<CsvUpload[]>;
+  getCsvUpload(batchId: string): Promise<CsvUpload | undefined>;
+  createCsvUpload(upload: InsertCsvUpload): Promise<CsvUpload>;
+  updateCsvUpload(batchId: string, upload: Partial<InsertCsvUpload>): Promise<CsvUpload>;
+  processTimesheetCsv(batchId: string, csvData: any[]): Promise<{processed: number, errors: any[]}>;
 }
 
 export class DatabaseStorage implements IStorage {

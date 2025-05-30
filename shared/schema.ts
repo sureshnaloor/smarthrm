@@ -129,6 +129,96 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Cost centers table
+export const costCenters = pgTable("cost_centers", {
+  id: serial("id").primaryKey(),
+  code: varchar("code").notNull().unique(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  department: varchar("department"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Timesheet entries table
+export const timesheetEntries = pgTable("timesheet_entries", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  costCenterId: integer("cost_center_id").notNull().references(() => costCenters.id),
+  workDate: date("work_date").notNull(),
+  hoursWorked: decimal("hours_worked", { precision: 4, scale: 2 }).notNull(),
+  overtimeHours: decimal("overtime_hours", { precision: 4, scale: 2 }).notNull().default("0"),
+  breakHours: decimal("break_hours", { precision: 4, scale: 2 }).notNull().default("0"),
+  checkInTime: varchar("check_in_time"), // HH:MM format
+  checkOutTime: varchar("check_out_time"), // HH:MM format
+  remarks: text("remarks"),
+  uploadBatchId: varchar("upload_batch_id"), // To track CSV upload batches
+  isManualEntry: boolean("is_manual_entry").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Payroll components table
+export const payrollComponents = pgTable("payroll_components", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  costCenterId: integer("cost_center_id").references(() => costCenters.id),
+  basicSalaryPerDay: decimal("basic_salary_per_day", { precision: 10, scale: 2 }).notNull(),
+  transportAllowancePerDay: decimal("transport_allowance_per_day", { precision: 8, scale: 2 }).notNull().default("0"),
+  foodAllowancePerDay: decimal("food_allowance_per_day", { precision: 8, scale: 2 }).notNull().default("0"),
+  accommodationAllowancePerDay: decimal("accommodation_allowance_per_day", { precision: 8, scale: 2 }).notNull().default("0"),
+  effectiveFrom: date("effective_from").notNull(),
+  effectiveTo: date("effective_to"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Payroll calculations table
+export const payrollCalculations = pgTable("payroll_calculations", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  payrollPeriod: varchar("payroll_period").notNull(), // YYYY-MM format
+  totalDaysWorked: decimal("total_days_worked", { precision: 4, scale: 1 }).notNull(),
+  totalHoursWorked: decimal("total_hours_worked", { precision: 6, scale: 2 }).notNull(),
+  overtimeHours: decimal("overtime_hours", { precision: 6, scale: 2 }).notNull().default("0"),
+  leaveDaysTaken: decimal("leave_days_taken", { precision: 4, scale: 1 }).notNull().default("0"),
+  
+  // Calculated amounts
+  basicSalary: decimal("basic_salary", { precision: 12, scale: 2 }).notNull(),
+  transportAllowance: decimal("transport_allowance", { precision: 10, scale: 2 }).notNull().default("0"),
+  foodAllowance: decimal("food_allowance", { precision: 10, scale: 2 }).notNull().default("0"),
+  accommodationAllowance: decimal("accommodation_allowance", { precision: 10, scale: 2 }).notNull().default("0"),
+  overtimePay: decimal("overtime_pay", { precision: 10, scale: 2 }).notNull().default("0"),
+  
+  grossSalary: decimal("gross_salary", { precision: 12, scale: 2 }).notNull(),
+  deductions: decimal("deductions", { precision: 10, scale: 2 }).notNull().default("0"),
+  netSalary: decimal("net_salary", { precision: 12, scale: 2 }).notNull(),
+  
+  calculatedAt: timestamp("calculated_at").defaultNow(),
+  approvedBy: integer("approved_by").references(() => employees.id),
+  approvedAt: timestamp("approved_at"),
+  status: varchar("status").notNull().default("draft"), // draft, approved, paid
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CSV upload tracking table
+export const csvUploads = pgTable("csv_uploads", {
+  id: serial("id").primaryKey(),
+  batchId: varchar("batch_id").notNull().unique(),
+  fileName: varchar("file_name").notNull(),
+  uploadType: varchar("upload_type").notNull(), // timesheet, payroll_components
+  totalRecords: integer("total_records").notNull(),
+  processedRecords: integer("processed_records").notNull(),
+  errorRecords: integer("error_records").notNull(),
+  uploadedBy: integer("uploaded_by").notNull().references(() => employees.id),
+  status: varchar("status").notNull().default("processing"), // processing, completed, failed
+  errorDetails: jsonb("error_details"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Employee documents table
 export const employeeDocuments = pgTable("employee_documents", {
   id: serial("id").primaryKey(),
@@ -299,6 +389,52 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const costCentersRelations = relations(costCenters, ({ many }) => ({
+  timesheetEntries: many(timesheetEntries),
+  payrollComponents: many(payrollComponents),
+}));
+
+export const timesheetEntriesRelations = relations(timesheetEntries, ({ one }) => ({
+  employee: one(employees, {
+    fields: [timesheetEntries.employeeId],
+    references: [employees.id],
+  }),
+  costCenter: one(costCenters, {
+    fields: [timesheetEntries.costCenterId],
+    references: [costCenters.id],
+  }),
+}));
+
+export const payrollComponentsRelations = relations(payrollComponents, ({ one }) => ({
+  employee: one(employees, {
+    fields: [payrollComponents.employeeId],
+    references: [employees.id],
+  }),
+  costCenter: one(costCenters, {
+    fields: [payrollComponents.costCenterId],
+    references: [costCenters.id],
+  }),
+}));
+
+export const payrollCalculationsRelations = relations(payrollCalculations, ({ one }) => ({
+  employee: one(employees, {
+    fields: [payrollCalculations.employeeId],
+    references: [employees.id],
+  }),
+  approvedBy: one(employees, {
+    fields: [payrollCalculations.approvedBy],
+    references: [employees.id],
+    relationName: "approver",
+  }),
+}));
+
+export const csvUploadsRelations = relations(csvUploads, ({ one }) => ({
+  uploadedBy: one(employees, {
+    fields: [csvUploads.uploadedBy],
+    references: [employees.id],
+  }),
+}));
+
 export const employeeDocumentsRelations = relations(employeeDocuments, ({ one }) => ({
   employee: one(employees, {
     fields: [employeeDocuments.employeeId],
@@ -451,6 +587,35 @@ export const insertLeaveAccrualSchema = createInsertSchema(leaveAccruals).omit({
   createdAt: true,
 });
 
+export const insertCostCenterSchema = createInsertSchema(costCenters).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTimesheetEntrySchema = createInsertSchema(timesheetEntries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPayrollComponentSchema = createInsertSchema(payrollComponents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPayrollCalculationSchema = createInsertSchema(payrollCalculations).omit({
+  id: true,
+  calculatedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCsvUploadSchema = createInsertSchema(csvUploads).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -470,6 +635,18 @@ export type InsertLeaveBalance = z.infer<typeof insertLeaveBalanceSchema>;
 export type LeaveBalance = typeof leaveBalances.$inferSelect;
 export type InsertLeaveAccrual = z.infer<typeof insertLeaveAccrualSchema>;
 export type LeaveAccrual = typeof leaveAccruals.$inferSelect;
+
+// Timesheet and Payroll Types
+export type InsertCostCenter = z.infer<typeof insertCostCenterSchema>;
+export type CostCenter = typeof costCenters.$inferSelect;
+export type InsertTimesheetEntry = z.infer<typeof insertTimesheetEntrySchema>;
+export type TimesheetEntry = typeof timesheetEntries.$inferSelect;
+export type InsertPayrollComponent = z.infer<typeof insertPayrollComponentSchema>;
+export type PayrollComponent = typeof payrollComponents.$inferSelect;
+export type InsertPayrollCalculation = z.infer<typeof insertPayrollCalculationSchema>;
+export type PayrollCalculation = typeof payrollCalculations.$inferSelect;
+export type InsertCsvUpload = z.infer<typeof insertCsvUploadSchema>;
+export type CsvUpload = typeof csvUploads.$inferSelect;
 
 // Performance Review Types
 export type InsertKpiDefinition = z.infer<typeof insertKpiDefinitionSchema>;
