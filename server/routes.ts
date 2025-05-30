@@ -319,6 +319,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // KPI Definition routes
+  app.get("/api/kpi-definitions", isAuthenticated, async (req, res) => {
+    try {
+      const { department } = req.query;
+      const kpis = department 
+        ? await storage.getKpiDefinitionsByDepartment(department as string)
+        : await storage.getAllKpiDefinitions();
+      res.json(kpis);
+    } catch (error) {
+      console.error("Error fetching KPI definitions:", error);
+      res.status(500).json({ message: "Failed to fetch KPI definitions" });
+    }
+  });
+
+  app.post("/api/kpi-definitions", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const kpi = await storage.createKpiDefinition({
+        ...req.body,
+        createdBy: req.employee.id,
+      });
+      res.status(201).json(kpi);
+    } catch (error) {
+      console.error("Error creating KPI definition:", error);
+      res.status(500).json({ message: "Failed to create KPI definition" });
+    }
+  });
+
+  app.patch("/api/kpi-definitions/:id", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const kpi = await storage.updateKpiDefinition(id, req.body);
+      res.json(kpi);
+    } catch (error) {
+      console.error("Error updating KPI definition:", error);
+      res.status(500).json({ message: "Failed to update KPI definition" });
+    }
+  });
+
+  // Review Cycle routes
+  app.get("/api/review-cycles", isAuthenticated, async (req, res) => {
+    try {
+      const { active } = req.query;
+      const cycles = active === "true" 
+        ? await storage.getActiveReviewCycles()
+        : await storage.getAllReviewCycles();
+      res.json(cycles);
+    } catch (error) {
+      console.error("Error fetching review cycles:", error);
+      res.status(500).json({ message: "Failed to fetch review cycles" });
+    }
+  });
+
+  app.post("/api/review-cycles", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const cycle = await storage.createReviewCycle({
+        ...req.body,
+        createdBy: req.employee.id,
+      });
+      res.status(201).json(cycle);
+    } catch (error) {
+      console.error("Error creating review cycle:", error);
+      res.status(500).json({ message: "Failed to create review cycle" });
+    }
+  });
+
+  app.patch("/api/review-cycles/:id", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const cycle = await storage.updateReviewCycle(id, req.body);
+      res.json(cycle);
+    } catch (error) {
+      console.error("Error updating review cycle:", error);
+      res.status(500).json({ message: "Failed to update review cycle" });
+    }
+  });
+
+  // Employee KPI routes
+  app.get("/api/employees/:employeeId/kpis", isAuthenticated, async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const { reviewCycleId } = req.query;
+      
+      if (!reviewCycleId) {
+        return res.status(400).json({ message: "Review cycle ID is required" });
+      }
+
+      const kpis = await storage.getEmployeeKpisByReviewCycle(
+        employeeId, 
+        parseInt(reviewCycleId as string)
+      );
+      res.json(kpis);
+    } catch (error) {
+      console.error("Error fetching employee KPIs:", error);
+      res.status(500).json({ message: "Failed to fetch employee KPIs" });
+    }
+  });
+
+  app.post("/api/employees/:employeeId/kpis", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const kpi = await storage.assignKpiToEmployee({
+        ...req.body,
+        employeeId,
+        assignedBy: req.employee.id,
+      });
+      res.status(201).json(kpi);
+    } catch (error) {
+      console.error("Error assigning KPI to employee:", error);
+      res.status(500).json({ message: "Failed to assign KPI to employee" });
+    }
+  });
+
+  app.patch("/api/employee-kpis/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const kpi = await storage.updateEmployeeKpi(id, req.body);
+      res.json(kpi);
+    } catch (error) {
+      console.error("Error updating employee KPI:", error);
+      res.status(500).json({ message: "Failed to update employee KPI" });
+    }
+  });
+
+  // Performance Review routes
+  app.get("/api/employees/:employeeId/performance-reviews", isAuthenticated, async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const reviews = await storage.getPerformanceReviewsByEmployee(employeeId);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching performance reviews:", error);
+      res.status(500).json({ message: "Failed to fetch performance reviews" });
+    }
+  });
+
+  app.get("/api/performance-reviews/reviewer", isAuthenticated, getCurrentEmployee, async (req: any, res) => {
+    try {
+      const reviews = await storage.getPerformanceReviewsByReviewer(req.employee.id);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching reviews for reviewer:", error);
+      res.status(500).json({ message: "Failed to fetch reviews for reviewer" });
+    }
+  });
+
+  app.post("/api/performance-reviews", isAuthenticated, async (req, res) => {
+    try {
+      const review = await storage.createPerformanceReview(req.body);
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating performance review:", error);
+      res.status(500).json({ message: "Failed to create performance review" });
+    }
+  });
+
+  app.patch("/api/performance-reviews/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const review = await storage.updatePerformanceReview(id, req.body);
+      res.json(review);
+    } catch (error) {
+      console.error("Error updating performance review:", error);
+      res.status(500).json({ message: "Failed to update performance review" });
+    }
+  });
+
+  app.get("/api/performance-reviews/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const review = await storage.getPerformanceReviewById(id);
+      
+      if (!review) {
+        return res.status(404).json({ message: "Performance review not found" });
+      }
+
+      res.json(review);
+    } catch (error) {
+      console.error("Error fetching performance review:", error);
+      res.status(500).json({ message: "Failed to fetch performance review" });
+    }
+  });
+
+  // Performance Improvement Plan routes
+  app.get("/api/employees/:employeeId/improvement-plans", isAuthenticated, async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const plans = await storage.getPerformanceImprovementPlansByEmployee(employeeId);
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching improvement plans:", error);
+      res.status(500).json({ message: "Failed to fetch improvement plans" });
+    }
+  });
+
+  app.post("/api/improvement-plans", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const plan = await storage.createPerformanceImprovementPlan(req.body);
+      res.status(201).json(plan);
+    } catch (error) {
+      console.error("Error creating improvement plan:", error);
+      res.status(500).json({ message: "Failed to create improvement plan" });
+    }
+  });
+
+  app.patch("/api/improvement-plans/:id", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const plan = await storage.updatePerformanceImprovementPlan(id, req.body);
+      res.json(plan);
+    } catch (error) {
+      console.error("Error updating improvement plan:", error);
+      res.status(500).json({ message: "Failed to update improvement plan" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

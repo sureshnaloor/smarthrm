@@ -5,6 +5,11 @@ import {
   timeOffRequests,
   notifications,
   employeeDocuments,
+  kpiDefinitions,
+  reviewCycles,
+  employeeKpis,
+  performanceReviews,
+  performanceImprovementPlans,
   type User,
   type UpsertUser,
   type Employee,
@@ -17,6 +22,16 @@ import {
   type InsertNotification,
   type EmployeeDocument,
   type InsertEmployeeDocument,
+  type KpiDefinition,
+  type InsertKpiDefinition,
+  type ReviewCycle,
+  type InsertReviewCycle,
+  type EmployeeKpi,
+  type InsertEmployeeKpi,
+  type PerformanceReview,
+  type InsertPerformanceReview,
+  type PerformanceImprovementPlan,
+  type InsertPerformanceImprovementPlan,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, isNull, count, sql } from "drizzle-orm";
@@ -61,6 +76,31 @@ export interface IStorage {
   getNewHiresThisMonth(): Promise<number>;
   getPendingTimeOffRequests(): Promise<number>;
   getActiveNotifications(): Promise<number>;
+  
+  // Performance Review operations
+  getAllKpiDefinitions(): Promise<KpiDefinition[]>;
+  getKpiDefinitionsByDepartment(department: string): Promise<KpiDefinition[]>;
+  createKpiDefinition(kpi: InsertKpiDefinition): Promise<KpiDefinition>;
+  updateKpiDefinition(id: number, kpi: Partial<InsertKpiDefinition>): Promise<KpiDefinition>;
+  
+  getAllReviewCycles(): Promise<ReviewCycle[]>;
+  getActiveReviewCycles(): Promise<ReviewCycle[]>;
+  createReviewCycle(cycle: InsertReviewCycle): Promise<ReviewCycle>;
+  updateReviewCycle(id: number, cycle: Partial<InsertReviewCycle>): Promise<ReviewCycle>;
+  
+  getEmployeeKpisByReviewCycle(employeeId: number, reviewCycleId: number): Promise<EmployeeKpi[]>;
+  assignKpiToEmployee(kpi: InsertEmployeeKpi): Promise<EmployeeKpi>;
+  updateEmployeeKpi(id: number, kpi: Partial<InsertEmployeeKpi>): Promise<EmployeeKpi>;
+  
+  getPerformanceReviewsByEmployee(employeeId: number): Promise<PerformanceReview[]>;
+  getPerformanceReviewsByReviewer(reviewerId: number): Promise<PerformanceReview[]>;
+  createPerformanceReview(review: InsertPerformanceReview): Promise<PerformanceReview>;
+  updatePerformanceReview(id: number, review: Partial<InsertPerformanceReview>): Promise<PerformanceReview>;
+  getPerformanceReviewById(id: number): Promise<PerformanceReview | undefined>;
+  
+  getPerformanceImprovementPlansByEmployee(employeeId: number): Promise<PerformanceImprovementPlan[]>;
+  createPerformanceImprovementPlan(plan: InsertPerformanceImprovementPlan): Promise<PerformanceImprovementPlan>;
+  updatePerformanceImprovementPlan(id: number, plan: Partial<InsertPerformanceImprovementPlan>): Promise<PerformanceImprovementPlan>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -313,6 +353,181 @@ export class DatabaseStorage implements IStorage {
       .from(notifications)
       .where(eq(notifications.isActive, true));
     return result.count;
+  }
+  
+  // Performance Review operations
+  async getAllKpiDefinitions(): Promise<KpiDefinition[]> {
+    return await db
+      .select()
+      .from(kpiDefinitions)
+      .where(eq(kpiDefinitions.isActive, true))
+      .orderBy(kpiDefinitions.category, kpiDefinitions.name);
+  }
+
+  async getKpiDefinitionsByDepartment(department: string): Promise<KpiDefinition[]> {
+    return await db
+      .select()
+      .from(kpiDefinitions)
+      .where(
+        and(
+          eq(kpiDefinitions.isActive, true),
+          or(
+            eq(kpiDefinitions.department, department),
+            isNull(kpiDefinitions.department)
+          )
+        )
+      )
+      .orderBy(kpiDefinitions.category, kpiDefinitions.name);
+  }
+
+  async createKpiDefinition(kpi: InsertKpiDefinition): Promise<KpiDefinition> {
+    const [newKpi] = await db
+      .insert(kpiDefinitions)
+      .values(kpi)
+      .returning();
+    return newKpi;
+  }
+
+  async updateKpiDefinition(id: number, kpi: Partial<InsertKpiDefinition>): Promise<KpiDefinition> {
+    const [updatedKpi] = await db
+      .update(kpiDefinitions)
+      .set({ ...kpi, updatedAt: new Date() })
+      .where(eq(kpiDefinitions.id, id))
+      .returning();
+    return updatedKpi;
+  }
+
+  async getAllReviewCycles(): Promise<ReviewCycle[]> {
+    return await db
+      .select()
+      .from(reviewCycles)
+      .orderBy(desc(reviewCycles.createdAt));
+  }
+
+  async getActiveReviewCycles(): Promise<ReviewCycle[]> {
+    return await db
+      .select()
+      .from(reviewCycles)
+      .where(eq(reviewCycles.status, "active"))
+      .orderBy(desc(reviewCycles.startDate));
+  }
+
+  async createReviewCycle(cycle: InsertReviewCycle): Promise<ReviewCycle> {
+    const [newCycle] = await db
+      .insert(reviewCycles)
+      .values(cycle)
+      .returning();
+    return newCycle;
+  }
+
+  async updateReviewCycle(id: number, cycle: Partial<InsertReviewCycle>): Promise<ReviewCycle> {
+    const [updatedCycle] = await db
+      .update(reviewCycles)
+      .set(cycle)
+      .where(eq(reviewCycles.id, id))
+      .returning();
+    return updatedCycle;
+  }
+
+  async getEmployeeKpisByReviewCycle(employeeId: number, reviewCycleId: number): Promise<EmployeeKpi[]> {
+    return await db
+      .select()
+      .from(employeeKpis)
+      .where(
+        and(
+          eq(employeeKpis.employeeId, employeeId),
+          eq(employeeKpis.reviewCycleId, reviewCycleId)
+        )
+      )
+      .orderBy(employeeKpis.assignedAt);
+  }
+
+  async assignKpiToEmployee(kpi: InsertEmployeeKpi): Promise<EmployeeKpi> {
+    const [newKpi] = await db
+      .insert(employeeKpis)
+      .values(kpi)
+      .returning();
+    return newKpi;
+  }
+
+  async updateEmployeeKpi(id: number, kpi: Partial<InsertEmployeeKpi>): Promise<EmployeeKpi> {
+    const [updatedKpi] = await db
+      .update(employeeKpis)
+      .set({ ...kpi, updatedAt: new Date() })
+      .where(eq(employeeKpis.id, id))
+      .returning();
+    return updatedKpi;
+  }
+
+  async getPerformanceReviewsByEmployee(employeeId: number): Promise<PerformanceReview[]> {
+    return await db
+      .select()
+      .from(performanceReviews)
+      .where(eq(performanceReviews.employeeId, employeeId))
+      .orderBy(desc(performanceReviews.createdAt));
+  }
+
+  async getPerformanceReviewsByReviewer(reviewerId: number): Promise<PerformanceReview[]> {
+    return await db
+      .select()
+      .from(performanceReviews)
+      .where(
+        or(
+          eq(performanceReviews.reviewerId, reviewerId),
+          eq(performanceReviews.secondLevelReviewerId, reviewerId)
+        )
+      )
+      .orderBy(desc(performanceReviews.createdAt));
+  }
+
+  async createPerformanceReview(review: InsertPerformanceReview): Promise<PerformanceReview> {
+    const [newReview] = await db
+      .insert(performanceReviews)
+      .values(review)
+      .returning();
+    return newReview;
+  }
+
+  async updatePerformanceReview(id: number, review: Partial<InsertPerformanceReview>): Promise<PerformanceReview> {
+    const [updatedReview] = await db
+      .update(performanceReviews)
+      .set({ ...review, updatedAt: new Date() })
+      .where(eq(performanceReviews.id, id))
+      .returning();
+    return updatedReview;
+  }
+
+  async getPerformanceReviewById(id: number): Promise<PerformanceReview | undefined> {
+    const [review] = await db
+      .select()
+      .from(performanceReviews)
+      .where(eq(performanceReviews.id, id));
+    return review;
+  }
+
+  async getPerformanceImprovementPlansByEmployee(employeeId: number): Promise<PerformanceImprovementPlan[]> {
+    return await db
+      .select()
+      .from(performanceImprovementPlans)
+      .where(eq(performanceImprovementPlans.employeeId, employeeId))
+      .orderBy(desc(performanceImprovementPlans.createdAt));
+  }
+
+  async createPerformanceImprovementPlan(plan: InsertPerformanceImprovementPlan): Promise<PerformanceImprovementPlan> {
+    const [newPlan] = await db
+      .insert(performanceImprovementPlans)
+      .values(plan)
+      .returning();
+    return newPlan;
+  }
+
+  async updatePerformanceImprovementPlan(id: number, plan: Partial<InsertPerformanceImprovementPlan>): Promise<PerformanceImprovementPlan> {
+    const [updatedPlan] = await db
+      .update(performanceImprovementPlans)
+      .set({ ...plan, updatedAt: new Date() })
+      .where(eq(performanceImprovementPlans.id, id))
+      .returning();
+    return updatedPlan;
   }
 }
 

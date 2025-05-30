@@ -115,6 +115,108 @@ export const employeeDocuments = pgTable("employee_documents", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// KPI definitions table
+export const kpiDefinitions = pgTable("kpi_definitions", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  category: varchar("category").notNull(), // performance, sales, quality, leadership, etc
+  measurementType: varchar("measurement_type").notNull(), // numeric, percentage, rating, boolean
+  targetValue: decimal("target_value", { precision: 10, scale: 2 }),
+  unit: varchar("unit"), // %, $, hours, etc
+  department: varchar("department"), // null for company-wide KPIs
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: integer("created_by").notNull().references(() => employees.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Performance review cycles table
+export const reviewCycles = pgTable("review_cycles", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(), // Q1 2024, Annual 2024, etc
+  description: text("description"),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  reviewDeadline: date("review_deadline").notNull(),
+  status: varchar("status").notNull().default("draft"), // draft, active, completed
+  createdBy: integer("created_by").notNull().references(() => employees.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Employee KPI assignments table
+export const employeeKpis = pgTable("employee_kpis", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  kpiId: integer("kpi_id").notNull().references(() => kpiDefinitions.id),
+  reviewCycleId: integer("review_cycle_id").notNull().references(() => reviewCycles.id),
+  targetValue: decimal("target_value", { precision: 10, scale: 2 }).notNull(),
+  actualValue: decimal("actual_value", { precision: 10, scale: 2 }),
+  weight: decimal("weight", { precision: 5, scale: 2 }).notNull().default("1.00"), // Weight of this KPI in overall score
+  assignedBy: integer("assigned_by").notNull().references(() => employees.id),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Performance reviews table
+export const performanceReviews = pgTable("performance_reviews", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  reviewCycleId: integer("review_cycle_id").notNull().references(() => reviewCycles.id),
+  reviewerId: integer("reviewer_id").notNull().references(() => employees.id), // Direct supervisor
+  secondLevelReviewerId: integer("second_level_reviewer_id").references(() => employees.id), // Manager's manager
+  
+  // KPI Score (calculated from employee_kpis)
+  kpiScore: decimal("kpi_score", { precision: 5, scale: 2 }),
+  kpiWeightedScore: decimal("kpi_weighted_score", { precision: 5, scale: 2 }),
+  
+  // Supervisor subjective ratings (1-5 scale)
+  communicationRating: integer("communication_rating"),
+  teamworkRating: integer("teamwork_rating"),
+  leadershipRating: integer("leadership_rating"),
+  innovationRating: integer("innovation_rating"),
+  reliabilityRating: integer("reliability_rating"),
+  
+  // Comments and feedback
+  achievements: text("achievements"),
+  areasForImprovement: text("areas_for_improvement"),
+  goalsForNextPeriod: text("goals_for_next_period"),
+  supervisorComments: text("supervisor_comments"),
+  secondLevelComments: text("second_level_comments"),
+  employeeSelfAssessment: text("employee_self_assessment"),
+  
+  // Overall ratings
+  overallRating: decimal("overall_rating", { precision: 3, scale: 2 }), // Final calculated score
+  recommendedAction: varchar("recommended_action"), // promote, maintain, improve, pip
+  
+  // Status and dates
+  status: varchar("status").notNull().default("draft"), // draft, submitted, reviewed, approved, completed
+  submittedAt: timestamp("submitted_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  approvedAt: timestamp("approved_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Performance improvement plans table
+export const performanceImprovementPlans = pgTable("performance_improvement_plans", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  reviewId: integer("review_id").references(() => performanceReviews.id),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  objectives: jsonb("objectives").notNull(), // Array of improvement objectives
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  checkInFrequency: varchar("check_in_frequency").notNull().default("weekly"), // weekly, biweekly, monthly
+  supervisorId: integer("supervisor_id").notNull().references(() => employees.id),
+  status: varchar("status").notNull().default("active"), // active, completed, terminated
+  outcome: varchar("outcome"), // successful, unsuccessful, extended
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one }) => ({
   employee: one(employees, {
@@ -182,6 +284,78 @@ export const employeeDocumentsRelations = relations(employeeDocuments, ({ one })
   }),
 }));
 
+export const kpiDefinitionsRelations = relations(kpiDefinitions, ({ one, many }) => ({
+  createdBy: one(employees, {
+    fields: [kpiDefinitions.createdBy],
+    references: [employees.id],
+  }),
+  employeeKpis: many(employeeKpis),
+}));
+
+export const reviewCyclesRelations = relations(reviewCycles, ({ one, many }) => ({
+  createdBy: one(employees, {
+    fields: [reviewCycles.createdBy],
+    references: [employees.id],
+  }),
+  employeeKpis: many(employeeKpis),
+  performanceReviews: many(performanceReviews),
+}));
+
+export const employeeKpisRelations = relations(employeeKpis, ({ one }) => ({
+  employee: one(employees, {
+    fields: [employeeKpis.employeeId],
+    references: [employees.id],
+  }),
+  kpiDefinition: one(kpiDefinitions, {
+    fields: [employeeKpis.kpiId],
+    references: [kpiDefinitions.id],
+  }),
+  reviewCycle: one(reviewCycles, {
+    fields: [employeeKpis.reviewCycleId],
+    references: [reviewCycles.id],
+  }),
+  assignedBy: one(employees, {
+    fields: [employeeKpis.assignedBy],
+    references: [employees.id],
+  }),
+}));
+
+export const performanceReviewsRelations = relations(performanceReviews, ({ one }) => ({
+  employee: one(employees, {
+    fields: [performanceReviews.employeeId],
+    references: [employees.id],
+  }),
+  reviewCycle: one(reviewCycles, {
+    fields: [performanceReviews.reviewCycleId],
+    references: [reviewCycles.id],
+  }),
+  reviewer: one(employees, {
+    fields: [performanceReviews.reviewerId],
+    references: [employees.id],
+    relationName: "reviewer",
+  }),
+  secondLevelReviewer: one(employees, {
+    fields: [performanceReviews.secondLevelReviewerId],
+    references: [employees.id],
+    relationName: "secondLevelReviewer",
+  }),
+}));
+
+export const performanceImprovementPlansRelations = relations(performanceImprovementPlans, ({ one }) => ({
+  employee: one(employees, {
+    fields: [performanceImprovementPlans.employeeId],
+    references: [employees.id],
+  }),
+  review: one(performanceReviews, {
+    fields: [performanceImprovementPlans.reviewId],
+    references: [performanceReviews.id],
+  }),
+  supervisor: one(employees, {
+    fields: [performanceImprovementPlans.supervisorId],
+    references: [employees.id],
+  }),
+}));
+
 // Insert schemas
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
@@ -211,6 +385,35 @@ export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments
   createdAt: true,
 });
 
+export const insertKpiDefinitionSchema = createInsertSchema(kpiDefinitions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReviewCycleSchema = createInsertSchema(reviewCycles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEmployeeKpiSchema = createInsertSchema(employeeKpis).omit({
+  id: true,
+  assignedAt: true,
+  updatedAt: true,
+});
+
+export const insertPerformanceReviewSchema = createInsertSchema(performanceReviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPerformanceImprovementPlanSchema = createInsertSchema(performanceImprovementPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -224,3 +427,15 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
 export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
+
+// Performance Review Types
+export type InsertKpiDefinition = z.infer<typeof insertKpiDefinitionSchema>;
+export type KpiDefinition = typeof kpiDefinitions.$inferSelect;
+export type InsertReviewCycle = z.infer<typeof insertReviewCycleSchema>;
+export type ReviewCycle = typeof reviewCycles.$inferSelect;
+export type InsertEmployeeKpi = z.infer<typeof insertEmployeeKpiSchema>;
+export type EmployeeKpi = typeof employeeKpis.$inferSelect;
+export type InsertPerformanceReview = z.infer<typeof insertPerformanceReviewSchema>;
+export type PerformanceReview = typeof performanceReviews.$inferSelect;
+export type InsertPerformanceImprovementPlan = z.infer<typeof insertPerformanceImprovementPlanSchema>;
+export type PerformanceImprovementPlan = typeof performanceImprovementPlans.$inferSelect;
