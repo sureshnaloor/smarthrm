@@ -88,6 +88,32 @@ export const timeOffRequests = pgTable("time_off_requests", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Leave balances table
+export const leaveBalances = pgTable("leave_balances", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  casualLeaveBalance: decimal("casual_leave_balance", { precision: 5, scale: 2 }).notNull().default("0"),
+  vacationLeaveBalance: decimal("vacation_leave_balance", { precision: 5, scale: 2 }).notNull().default("0"),
+  lastAccrualDate: date("last_accrual_date").defaultNow(),
+  lastQuarterAccrual: date("last_quarter_accrual"),
+  year: integer("year").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Leave accrual history table
+export const leaveAccruals = pgTable("leave_accrual_history", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  accrualType: varchar("accrual_type").notNull(), // casual, vacation
+  accrualAmount: decimal("accrual_amount", { precision: 4, scale: 2 }).notNull(),
+  accrualDate: date("accrual_date").notNull(),
+  workingDaysCompleted: integer("working_days_completed"),
+  quarterCompleted: integer("quarter_completed"),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Notifications table
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
