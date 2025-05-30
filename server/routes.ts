@@ -534,6 +534,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Leave Management routes
+  app.get("/api/employees/:employeeId/leave-balance", isAuthenticated, async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const { year } = req.query;
+      
+      // Process latest accruals
+      await storage.processLeaveAccruals(employeeId);
+      
+      const balance = await storage.getLeaveBalance(employeeId, year ? parseInt(year as string) : undefined);
+      if (!balance) {
+        return res.status(404).json({ message: "Leave balance not found" });
+      }
+      res.json(balance);
+    } catch (error) {
+      console.error("Error fetching leave balance:", error);
+      res.status(500).json({ message: "Failed to fetch leave balance" });
+    }
+  });
+
+  app.get("/api/employees/:employeeId/leave-accruals", isAuthenticated, async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const accruals = await storage.getLeaveAccrualHistory(employeeId);
+      res.json(accruals);
+    } catch (error) {
+      console.error("Error fetching leave accruals:", error);
+      res.status(500).json({ message: "Failed to fetch leave accruals" });
+    }
+  });
+
+  app.post("/api/leave-requests", isAuthenticated, getCurrentEmployee, async (req: any, res) => {
+    try {
+      const { leaveType, startDate, endDate, days, reason, isWithPay, emergencyContact, workCoverage } = req.body;
+      
+      // Validate leave request
+      const validation = await storage.validateLeaveRequest(req.employee.id, leaveType, parseFloat(days));
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.message });
+      }
+
+      // Determine if approval is required (vacation leave always requires approval, casual leave for notification only)
+      const requiresApproval = leaveType === "vacation";
+      
+      const leaveRequest = await storage.createTimeOffRequest({
+        employeeId: req.employee.id,
+        leaveType,
+        startDate,
+        endDate,
+        days: parseFloat(days),
+        reason,
+        status: requiresApproval ? "pending" : "approved",
+        requiresApproval,
+        isWithPay: isWithPay !== false, // Default to true if not specified
+        supervisorNotified: !requiresApproval, // Auto-notify for casual leave
+        emergencyContact,
+        workCoverage,
+      });
+
+      // If casual leave (just notification), automatically deduct balance
+      if (!requiresApproval) {
+        await storage.deductLeaveBalance(req.employee.id, leaveType, parseFloat(days));
+      }
+
+      res.status(201).json(leaveRequest);
+    } catch (error) {
+      console.error("Error creating leave request:", error);
+      res.status(500).json({ message: "Failed to create leave request" });
+    }
+  });
+
+  app.get("/api/leave-requests/my", isAuthenticated, getCurrentEmployee, async (req: any, res) => {
+    try {
+      const requests = await storage.getTimeOffRequestsByEmployee(req.employee.id);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching leave requests:", error);
+      res.status(500).json({ message: "Failed to fetch leave requests" });
+    }
+  });
+
+  app.get("/api/leave-requests/pending-approval", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      // In a real implementation, this would filter by supervisor relationship
+      const pendingRequests = await storage.getPendingTimeOffRequests();
+      res.json(pendingRequests);
+    } catch (error) {
+      console.error("Error fetching pending requests:", error);
+      res.status(500).json({ message: "Failed to fetch pending requests" });
+    }
+  });
+
+  app.patch("/api/leave-requests/:id/approve", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { comments } = req.body;
+      
+      // Get the leave request
+      const request = await storage.getTimeOffRequestById(id);
+      if (!request) {
+        return res.status(404).json({ message: "Leave request not found" });
+      }
+
+      // Validate that employee still has sufficient balance
+      const validation = await storage.validateLeaveRequest(request.employeeId, request.leaveType, parseFloat(request.days));
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.message });
+      }
+
+      // Approve request and deduct balance
+      const updatedRequest = await storage.updateTimeOffRequest(id, {
+        status: "approved",
+        approverId: req.employee.id,
+        responseDate: new Date(),
+        approverComments: comments,
+      });
+
+      // Deduct from leave balance
+      await storage.deductLeaveBalance(request.employeeId, request.leaveType, parseFloat(request.days));
+
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error approving leave request:", error);
+      res.status(500).json({ message: "Failed to approve leave request" });
+    }
+  });
+
+  app.patch("/api/leave-requests/:id/deny", isAuthenticated, getCurrentEmployee, requireAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { comments } = req.body;
+      
+      const updatedRequest = await storage.updateTimeOffRequest(id, {
+        status: "denied",
+        approverId: req.employee.id,
+        responseDate: new Date(),
+        approverComments: comments,
+      });
+
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error denying leave request:", error);
+      res.status(500).json({ message: "Failed to deny leave request" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

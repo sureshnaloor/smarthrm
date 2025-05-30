@@ -5,6 +5,8 @@ import {
   timeOffRequests,
   notifications,
   employeeDocuments,
+  leaveBalances,
+  leaveAccruals,
   kpiDefinitions,
   reviewCycles,
   employeeKpis,
@@ -22,6 +24,10 @@ import {
   type InsertNotification,
   type EmployeeDocument,
   type InsertEmployeeDocument,
+  type LeaveBalance,
+  type InsertLeaveBalance,
+  type LeaveAccrual,
+  type InsertLeaveAccrual,
   type KpiDefinition,
   type InsertKpiDefinition,
   type ReviewCycle,
@@ -101,6 +107,21 @@ export interface IStorage {
   getPerformanceImprovementPlansByEmployee(employeeId: number): Promise<PerformanceImprovementPlan[]>;
   createPerformanceImprovementPlan(plan: InsertPerformanceImprovementPlan): Promise<PerformanceImprovementPlan>;
   updatePerformanceImprovementPlan(id: number, plan: Partial<InsertPerformanceImprovementPlan>): Promise<PerformanceImprovementPlan>;
+  
+  // Leave Management operations
+  getLeaveBalance(employeeId: number, year?: number): Promise<LeaveBalance | undefined>;
+  createLeaveBalance(balance: InsertLeaveBalance): Promise<LeaveBalance>;
+  updateLeaveBalance(id: number, balance: Partial<InsertLeaveBalance>): Promise<LeaveBalance>;
+  
+  getLeaveAccrualHistory(employeeId: number): Promise<LeaveAccrual[]>;
+  createLeaveAccrual(accrual: InsertLeaveAccrual): Promise<LeaveAccrual>;
+  
+  calculateCasualLeaveAccrual(employeeId: number): Promise<number>;
+  calculateVacationLeaveAccrual(employeeId: number): Promise<number>;
+  processLeaveAccruals(employeeId: number): Promise<void>;
+  
+  deductLeaveBalance(employeeId: number, leaveType: string, days: number): Promise<boolean>;
+  validateLeaveRequest(employeeId: number, leaveType: string, days: number): Promise<{valid: boolean, message: string}>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -528,6 +549,188 @@ export class DatabaseStorage implements IStorage {
       .where(eq(performanceImprovementPlans.id, id))
       .returning();
     return updatedPlan;
+  }
+
+  // Leave Management operations
+  async getLeaveBalance(employeeId: number, year?: number): Promise<LeaveBalance | undefined> {
+    const currentYear = year || new Date().getFullYear();
+    const [balance] = await db
+      .select()
+      .from(leaveBalances)
+      .where(
+        and(
+          eq(leaveBalances.employeeId, employeeId),
+          eq(leaveBalances.year, currentYear)
+        )
+      );
+    return balance;
+  }
+
+  async createLeaveBalance(balance: InsertLeaveBalance): Promise<LeaveBalance> {
+    const [newBalance] = await db
+      .insert(leaveBalances)
+      .values(balance)
+      .returning();
+    return newBalance;
+  }
+
+  async updateLeaveBalance(id: number, balance: Partial<InsertLeaveBalance>): Promise<LeaveBalance> {
+    const [updatedBalance] = await db
+      .update(leaveBalances)
+      .set({ ...balance, updatedAt: new Date() })
+      .where(eq(leaveBalances.id, id))
+      .returning();
+    return updatedBalance;
+  }
+
+  async getLeaveAccrualHistory(employeeId: number): Promise<LeaveAccrual[]> {
+    return await db
+      .select()
+      .from(leaveAccruals)
+      .where(eq(leaveAccruals.employeeId, employeeId))
+      .orderBy(desc(leaveAccruals.accrualDate));
+  }
+
+  async createLeaveAccrual(accrual: InsertLeaveAccrual): Promise<LeaveAccrual> {
+    const [newAccrual] = await db
+      .insert(leaveAccruals)
+      .values(accrual)
+      .returning();
+    return newAccrual;
+  }
+
+  // Calculate casual leave accrual: 1 day every 20 working days
+  async calculateCasualLeaveAccrual(employeeId: number): Promise<number> {
+    const employee = await this.getEmployee(employeeId);
+    if (!employee) return 0;
+
+    const startDate = new Date(employee.startDate);
+    const currentDate = new Date();
+    
+    // Calculate working days since start (5 working days per week)
+    const daysSinceStart = Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weeksSinceStart = Math.floor(daysSinceStart / 7);
+    const workingDaysSinceStart = weeksSinceStart * 5;
+    
+    // 1 day accrual for every 20 working days
+    return Math.floor(workingDaysSinceStart / 20);
+  }
+
+  // Calculate vacation leave accrual: 5 days per quarter after completing each quarter
+  async calculateVacationLeaveAccrual(employeeId: number): Promise<number> {
+    const employee = await this.getEmployee(employeeId);
+    if (!employee) return 0;
+
+    const startDate = new Date(employee.startDate);
+    const currentDate = new Date();
+    
+    // Calculate completed quarters of service
+    const monthsSinceStart = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                            (currentDate.getMonth() - startDate.getMonth());
+    const completedQuarters = Math.floor(monthsSinceStart / 3);
+    
+    // 5 days for each completed quarter
+    return completedQuarters * 5;
+  }
+
+  // Process leave accruals for an employee
+  async processLeaveAccruals(employeeId: number): Promise<void> {
+    const currentYear = new Date().getFullYear();
+    
+    // Get or create leave balance for current year
+    let balance = await this.getLeaveBalance(employeeId, currentYear);
+    if (!balance) {
+      balance = await this.createLeaveBalance({
+        employeeId,
+        casualLeaveBalance: "0",
+        vacationLeaveBalance: "0",
+        year: currentYear,
+      });
+    }
+
+    // Calculate accruals
+    const casualAccrual = await this.calculateCasualLeaveAccrual(employeeId);
+    const vacationAccrual = await this.calculateVacationLeaveAccrual(employeeId);
+
+    // Update balances if there are new accruals
+    const currentCasual = parseFloat(balance.casualLeaveBalance);
+    const currentVacation = parseFloat(balance.vacationLeaveBalance);
+
+    if (casualAccrual > currentCasual) {
+      const newCasualDays = casualAccrual - currentCasual;
+      await this.updateLeaveBalance(balance.id, {
+        casualLeaveBalance: casualAccrual.toString(),
+      });
+      
+      // Record accrual history
+      await this.createLeaveAccrual({
+        employeeId,
+        accrualType: "casual",
+        accrualAmount: newCasualDays.toString(),
+        accrualDate: new Date().toISOString().split('T')[0],
+        reason: `Accrued ${newCasualDays} casual leave days (1 day per 20 working days)`,
+      });
+    }
+
+    if (vacationAccrual > currentVacation) {
+      const newVacationDays = vacationAccrual - currentVacation;
+      await this.updateLeaveBalance(balance.id, {
+        vacationLeaveBalance: vacationAccrual.toString(),
+      });
+
+      // Record accrual history
+      await this.createLeaveAccrual({
+        employeeId,
+        accrualType: "vacation",
+        accrualAmount: newVacationDays.toString(),
+        accrualDate: new Date().toISOString().split('T')[0],
+        reason: `Accrued ${newVacationDays} vacation leave days (5 days per completed quarter)`,
+      });
+    }
+  }
+
+  // Deduct leave balance when leave is taken
+  async deductLeaveBalance(employeeId: number, leaveType: string, days: number): Promise<boolean> {
+    const balance = await this.getLeaveBalance(employeeId);
+    if (!balance) return false;
+
+    const currentBalance = parseFloat(
+      leaveType === "casual" ? balance.casualLeaveBalance : balance.vacationLeaveBalance
+    );
+
+    if (currentBalance < days) return false;
+
+    const newBalance = currentBalance - days;
+    const updateField = leaveType === "casual" ? 
+      { casualLeaveBalance: newBalance.toString() } : 
+      { vacationLeaveBalance: newBalance.toString() };
+
+    await this.updateLeaveBalance(balance.id, updateField);
+    return true;
+  }
+
+  // Validate leave request against balance and policies
+  async validateLeaveRequest(employeeId: number, leaveType: string, days: number): Promise<{valid: boolean, message: string}> {
+    // Process latest accruals first
+    await this.processLeaveAccruals(employeeId);
+    
+    const balance = await this.getLeaveBalance(employeeId);
+    if (!balance) {
+      return { valid: false, message: "Leave balance not found" };
+    }
+
+    const availableBalance = parseFloat(
+      leaveType === "casual" ? balance.casualLeaveBalance : balance.vacationLeaveBalance
+    );
+
+    if (availableBalance < days) {
+      return { 
+        valid: false, 
+        message: `Insufficient ${leaveType} leave balance. Available: ${availableBalance} days, Requested: ${days} days` 
+      };
+    }
+
+    return { valid: true, message: "Leave request is valid" };
   }
 }
 

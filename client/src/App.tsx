@@ -11,6 +11,7 @@ import Pay from "@/pages/pay";
 import Records from "@/pages/records";
 import Messages from "@/pages/messages";
 import Performance from "@/pages/performance";
+import Leave from "@/pages/leave";
 import AdminEmployees from "@/pages/admin/employees";
 import AdminNotifications from "@/pages/admin/notifications";
 import AdminReports from "@/pages/admin/reports";

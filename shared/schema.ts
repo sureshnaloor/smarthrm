@@ -440,6 +440,17 @@ export const insertPerformanceImprovementPlanSchema = createInsertSchema(perform
   updatedAt: true,
 });
 
+export const insertLeaveBalanceSchema = createInsertSchema(leaveBalances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLeaveAccrualSchema = createInsertSchema(leaveAccruals).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -453,6 +464,12 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
 export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
+
+// Leave Management Types
+export type InsertLeaveBalance = z.infer<typeof insertLeaveBalanceSchema>;
+export type LeaveBalance = typeof leaveBalances.$inferSelect;
+export type InsertLeaveAccrual = z.infer<typeof insertLeaveAccrualSchema>;
+export type LeaveAccrual = typeof leaveAccruals.$inferSelect;
 
 // Performance Review Types
 export type InsertKpiDefinition = z.infer<typeof insertKpiDefinitionSchema>;
