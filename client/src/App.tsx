@@ -12,6 +12,7 @@ import Records from "@/pages/records";
 import Messages from "@/pages/messages";
 import Performance from "@/pages/performance";
 import Leave from "@/pages/leave";
+import Timesheet from "@/pages/timesheet";
 import AdminEmployees from "@/pages/admin/employees";
 import AdminNotifications from "@/pages/admin/notifications";
 import AdminReports from "@/pages/admin/reports";
@@ -39,6 +40,7 @@ function Router() {
           <Route path="/messages" component={Messages} />
           <Route path="/performance" component={Performance} />
           <Route path="/leave" component={Leave} />
+          <Route path="/timesheet" component={Timesheet} />
           <Route path="/admin/employees" component={AdminEmployees} />
           <Route path="/admin/notifications" component={AdminNotifications} />
           <Route path="/admin/reports" component={AdminReports} />

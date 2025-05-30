@@ -8,6 +8,7 @@ import {
   MessageCircle, 
   Target,
   Calendar,
+  Clock,
   Users, 
   Megaphone, 
   BarChart3,
@@ -21,6 +22,7 @@ const employeeNavItems = [
   { path: "/messages", label: "Messages", icon: MessageCircle },
   { path: "/performance", label: "Performance Reviews", icon: Target },
   { path: "/leave", label: "Leave Management", icon: Calendar },
+  { path: "/timesheet", label: "Timesheet & Payroll", icon: Clock },
 ];
 
 const adminNavItems = [
