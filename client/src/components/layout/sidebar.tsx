@@ -7,6 +7,7 @@ import {
   FolderOpen, 
   MessageCircle, 
   Target,
+  Calendar,
   Users, 
   Megaphone, 
   BarChart3,
@@ -19,6 +20,7 @@ const employeeNavItems = [
   { path: "/records", label: "My Records", icon: FolderOpen },
   { path: "/messages", label: "Messages", icon: MessageCircle },
   { path: "/performance", label: "Performance Reviews", icon: Target },
+  { path: "/leave", label: "Leave Management", icon: Calendar },
 ];
 
 const adminNavItems = [

@@ -38,6 +38,7 @@ function Router() {
           <Route path="/records" component={Records} />
           <Route path="/messages" component={Messages} />
           <Route path="/performance" component={Performance} />
+          <Route path="/leave" component={Leave} />
           <Route path="/admin/employees" component={AdminEmployees} />
           <Route path="/admin/notifications" component={AdminNotifications} />
           <Route path="/admin/reports" component={AdminReports} />
