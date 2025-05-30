@@ -782,6 +782,322 @@ export class DatabaseStorage implements IStorage {
 
     return { valid: true, message: "Leave request is valid" };
   }
+
+  // Cost Center operations
+  async getAllCostCenters(): Promise<CostCenter[]> {
+    return await db.select().from(costCenters).where(eq(costCenters.isActive, true));
+  }
+
+  async getCostCenter(id: number): Promise<CostCenter | undefined> {
+    const [costCenter] = await db.select().from(costCenters).where(eq(costCenters.id, id));
+    return costCenter;
+  }
+
+  async createCostCenter(costCenter: InsertCostCenter): Promise<CostCenter> {
+    const [created] = await db.insert(costCenters).values(costCenter).returning();
+    return created;
+  }
+
+  async updateCostCenter(id: number, costCenter: Partial<InsertCostCenter>): Promise<CostCenter> {
+    const [updated] = await db
+      .update(costCenters)
+      .set(costCenter)
+      .where(eq(costCenters.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Timesheet operations
+  async getTimesheetEntriesByEmployee(employeeId: number, startDate?: string, endDate?: string): Promise<TimesheetEntry[]> {
+    let query = db.select().from(timesheetEntries).where(eq(timesheetEntries.employeeId, employeeId));
+    
+    if (startDate && endDate) {
+      query = query.where(
+        and(
+          sql`${timesheetEntries.workDate} >= ${startDate}`,
+          sql`${timesheetEntries.workDate} <= ${endDate}`
+        )
+      );
+    }
+    
+    return await query.orderBy(desc(timesheetEntries.workDate));
+  }
+
+  async getTimesheetEntriesByPeriod(period: string): Promise<TimesheetEntry[]> {
+    const [year, month] = period.split('-');
+    const startDate = `${year}-${month.padStart(2, '0')}-01`;
+    const endDate = `${year}-${month.padStart(2, '0')}-31`;
+    
+    return await db.select()
+      .from(timesheetEntries)
+      .where(
+        and(
+          sql`${timesheetEntries.workDate} >= ${startDate}`,
+          sql`${timesheetEntries.workDate} <= ${endDate}`
+        )
+      )
+      .orderBy(timesheetEntries.employeeId, timesheetEntries.workDate);
+  }
+
+  async createTimesheetEntry(entry: InsertTimesheetEntry): Promise<TimesheetEntry> {
+    const [created] = await db.insert(timesheetEntries).values(entry).returning();
+    return created;
+  }
+
+  async bulkCreateTimesheetEntries(entries: InsertTimesheetEntry[]): Promise<TimesheetEntry[]> {
+    if (entries.length === 0) return [];
+    return await db.insert(timesheetEntries).values(entries).returning();
+  }
+
+  async updateTimesheetEntry(id: number, entry: Partial<InsertTimesheetEntry>): Promise<TimesheetEntry> {
+    const [updated] = await db
+      .update(timesheetEntries)
+      .set({ ...entry, updatedAt: new Date() })
+      .where(eq(timesheetEntries.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTimesheetEntry(id: number): Promise<void> {
+    await db.delete(timesheetEntries).where(eq(timesheetEntries.id, id));
+  }
+
+  // Payroll Component operations
+  async getPayrollComponentsByEmployee(employeeId: number): Promise<PayrollComponent[]> {
+    return await db.select()
+      .from(payrollComponents)
+      .where(eq(payrollComponents.employeeId, employeeId))
+      .orderBy(desc(payrollComponents.effectiveFrom));
+  }
+
+  async getCurrentPayrollComponent(employeeId: number): Promise<PayrollComponent | undefined> {
+    const [component] = await db.select()
+      .from(payrollComponents)
+      .where(
+        and(
+          eq(payrollComponents.employeeId, employeeId),
+          eq(payrollComponents.isActive, true),
+          or(
+            isNull(payrollComponents.effectiveTo),
+            sql`${payrollComponents.effectiveTo} >= CURRENT_DATE`
+          )
+        )
+      )
+      .orderBy(desc(payrollComponents.effectiveFrom))
+      .limit(1);
+    return component;
+  }
+
+  async createPayrollComponent(component: InsertPayrollComponent): Promise<PayrollComponent> {
+    const [created] = await db.insert(payrollComponents).values(component).returning();
+    return created;
+  }
+
+  async updatePayrollComponent(id: number, component: Partial<InsertPayrollComponent>): Promise<PayrollComponent> {
+    const [updated] = await db
+      .update(payrollComponents)
+      .set({ ...component, updatedAt: new Date() })
+      .where(eq(payrollComponents.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Payroll Calculation operations
+  async getPayrollCalculationsByEmployee(employeeId: number): Promise<PayrollCalculation[]> {
+    return await db.select()
+      .from(payrollCalculations)
+      .where(eq(payrollCalculations.employeeId, employeeId))
+      .orderBy(desc(payrollCalculations.payrollPeriod));
+  }
+
+  async getPayrollCalculationByPeriod(employeeId: number, period: string): Promise<PayrollCalculation | undefined> {
+    const [calculation] = await db.select()
+      .from(payrollCalculations)
+      .where(
+        and(
+          eq(payrollCalculations.employeeId, employeeId),
+          eq(payrollCalculations.payrollPeriod, period)
+        )
+      );
+    return calculation;
+  }
+
+  async createPayrollCalculation(calculation: InsertPayrollCalculation): Promise<PayrollCalculation> {
+    const [created] = await db.insert(payrollCalculations).values(calculation).returning();
+    return created;
+  }
+
+  async updatePayrollCalculation(id: number, calculation: Partial<InsertPayrollCalculation>): Promise<PayrollCalculation> {
+    const [updated] = await db
+      .update(payrollCalculations)
+      .set({ ...calculation, updatedAt: new Date() })
+      .where(eq(payrollCalculations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async calculatePayrollForEmployee(employeeId: number, period: string): Promise<PayrollCalculation> {
+    const payrollComponent = await this.getCurrentPayrollComponent(employeeId);
+    if (!payrollComponent) {
+      throw new Error(`No payroll components found for employee ${employeeId}`);
+    }
+
+    const [year, month] = period.split('-');
+    const startDate = `${year}-${month.padStart(2, '0')}-01`;
+    const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+
+    const timesheetEntries = await this.getTimesheetEntriesByEmployee(employeeId, startDate, endDate);
+    
+    const leaveRequests = await this.getTimeOffRequestsByEmployee(employeeId);
+    const approvedLeave = leaveRequests.filter(req => 
+      req.status === 'approved' && 
+      req.startDate >= startDate && 
+      req.endDate <= endDate
+    );
+    
+    const leaveDaysTaken = approvedLeave.reduce((total, leave) => total + leave.days, 0);
+
+    const totalDaysWorked = timesheetEntries.length;
+    const totalHoursWorked = timesheetEntries.reduce((total, entry) => 
+      total + parseFloat(entry.hoursWorked), 0
+    );
+    const overtimeHours = timesheetEntries.reduce((total, entry) => 
+      total + parseFloat(entry.overtimeHours || '0'), 0
+    );
+
+    const basicSalary = totalDaysWorked * parseFloat(payrollComponent.basicSalaryPerDay);
+    const transportAllowance = totalDaysWorked * parseFloat(payrollComponent.transportAllowancePerDay);
+    const foodAllowance = totalDaysWorked * parseFloat(payrollComponent.foodAllowancePerDay);
+    const accommodationAllowance = totalDaysWorked * parseFloat(payrollComponent.accommodationAllowancePerDay);
+    const overtimePay = overtimeHours * (parseFloat(payrollComponent.basicSalaryPerDay) / 8 * 1.5);
+
+    const grossSalary = basicSalary + transportAllowance + foodAllowance + accommodationAllowance + overtimePay;
+    const deductions = 0;
+    const netSalary = grossSalary - deductions;
+
+    const calculationData: InsertPayrollCalculation = {
+      employeeId,
+      payrollPeriod: period,
+      totalDaysWorked: totalDaysWorked.toString(),
+      totalHoursWorked: totalHoursWorked.toString(),
+      overtimeHours: overtimeHours.toString(),
+      leaveDaysTaken: leaveDaysTaken.toString(),
+      basicSalary: basicSalary.toString(),
+      transportAllowance: transportAllowance.toString(),
+      foodAllowance: foodAllowance.toString(),
+      accommodationAllowance: accommodationAllowance.toString(),
+      overtimePay: overtimePay.toString(),
+      grossSalary: grossSalary.toString(),
+      deductions: deductions.toString(),
+      netSalary: netSalary.toString(),
+      status: 'draft'
+    };
+
+    return await this.createPayrollCalculation(calculationData);
+  }
+
+  async bulkCalculatePayroll(period: string): Promise<PayrollCalculation[]> {
+    const employees = await this.getAllEmployees();
+    const calculations: PayrollCalculation[] = [];
+
+    for (const employee of employees) {
+      try {
+        const existing = await this.getPayrollCalculationByPeriod(employee.id, period);
+        if (!existing) {
+          const calculation = await this.calculatePayrollForEmployee(employee.id, period);
+          calculations.push(calculation);
+        }
+      } catch (error) {
+        console.error(`Error calculating payroll for employee ${employee.id}:`, error);
+      }
+    }
+
+    return calculations;
+  }
+
+  // CSV Upload operations
+  async getCsvUploads(): Promise<CsvUpload[]> {
+    return await db.select().from(csvUploads).orderBy(desc(csvUploads.createdAt));
+  }
+
+  async getCsvUpload(batchId: string): Promise<CsvUpload | undefined> {
+    const [upload] = await db.select().from(csvUploads).where(eq(csvUploads.batchId, batchId));
+    return upload;
+  }
+
+  async createCsvUpload(upload: InsertCsvUpload): Promise<CsvUpload> {
+    const [created] = await db.insert(csvUploads).values(upload).returning();
+    return created;
+  }
+
+  async updateCsvUpload(batchId: string, upload: Partial<InsertCsvUpload>): Promise<CsvUpload> {
+    const [updated] = await db
+      .update(csvUploads)
+      .set(upload)
+      .where(eq(csvUploads.batchId, batchId))
+      .returning();
+    return updated;
+  }
+
+  async processTimesheetCsv(batchId: string, csvData: any[]): Promise<{processed: number, errors: any[]}> {
+    const errors: any[] = [];
+    const timesheetEntries: InsertTimesheetEntry[] = [];
+    
+    for (let i = 0; i < csvData.length; i++) {
+      try {
+        const row = csvData[i];
+        
+        if (!row.employeeId || !row.workDate || !row.hoursWorked) {
+          errors.push({ row: i + 1, error: 'Missing required fields: employeeId, workDate, hoursWorked' });
+          continue;
+        }
+
+        const employee = await this.getEmployee(parseInt(row.employeeId));
+        if (!employee) {
+          errors.push({ row: i + 1, error: `Employee not found: ${row.employeeId}` });
+          continue;
+        }
+
+        const costCenters = await this.getAllCostCenters();
+        const costCenter = costCenters.find(cc => cc.code === row.costCenterCode);
+        if (!costCenter) {
+          errors.push({ row: i + 1, error: `Cost center not found: ${row.costCenterCode}` });
+          continue;
+        }
+
+        timesheetEntries.push({
+          employeeId: employee.id,
+          costCenterId: costCenter.id,
+          workDate: row.workDate,
+          hoursWorked: row.hoursWorked,
+          overtimeHours: row.overtimeHours || '0',
+          breakHours: row.breakHours || '0',
+          checkInTime: row.checkInTime,
+          checkOutTime: row.checkOutTime,
+          remarks: row.remarks,
+          uploadBatchId: batchId,
+          isManualEntry: false
+        });
+      } catch (error) {
+        errors.push({ row: i + 1, error: error.message });
+      }
+    }
+
+    let processedCount = 0;
+    if (timesheetEntries.length > 0) {
+      await this.bulkCreateTimesheetEntries(timesheetEntries);
+      processedCount = timesheetEntries.length;
+    }
+
+    await this.updateCsvUpload(batchId, {
+      processedRecords: processedCount,
+      errorRecords: errors.length,
+      status: errors.length === 0 ? 'completed' : 'completed_with_errors',
+      errorDetails: errors
+    });
+
+    return { processed: processedCount, errors };
+  }
 }
 
 export const storage = new DatabaseStorage();
