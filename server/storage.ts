@@ -61,6 +61,8 @@ import { eq, desc, and, or, isNull, count, sql } from "drizzle-orm";
 export interface IStorage {
   // User operations (IMPORTANT: mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  updateUser(id: string, userData: Partial<UpsertUser>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Employee operations
@@ -179,6 +181,20 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async updateUser(id: string, userData: Partial<UpsertUser>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ ...userData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {

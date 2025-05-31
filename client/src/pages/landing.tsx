@@ -1,12 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Shield, Briefcase, Bell } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Landing() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center hr-gradient p-4">
       <Card className="w-full max-w-md mx-4 shadow-2xl">
@@ -51,12 +48,18 @@ export default function Landing() {
             </div>
           </div>
 
-          <Button 
-            onClick={handleLogin}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3"
-          >
-            Sign In to Continue
-          </Button>
+          <div className="space-y-4">
+            <Link href="/login">
+              <Button className="w-full" size="lg">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button className="w-full" variant="outline" size="lg">
+                Create Account
+              </Button>
+            </Link>
+          </div>
 
           <div className="mt-8 pt-6 border-t border-border text-center">
             <p className="text-sm text-muted-foreground">

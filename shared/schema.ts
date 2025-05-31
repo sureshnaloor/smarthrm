@@ -31,10 +31,14 @@ export const sessions = pgTable(
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(), // Hashed password
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").notNull().default("user"), // user, admin
+  isActive: boolean("is_active").notNull().default(true),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -659,3 +663,16 @@ export type InsertPerformanceReview = z.infer<typeof insertPerformanceReviewSche
 export type PerformanceReview = typeof performanceReviews.$inferSelect;
 export type InsertPerformanceImprovementPlan = z.infer<typeof insertPerformanceImprovementPlanSchema>;
 export type PerformanceImprovementPlan = typeof performanceImprovementPlans.$inferSelect;
+
+// Auth schemas
+export const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string().min(2),
+  lastName: z.string().min(2),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
