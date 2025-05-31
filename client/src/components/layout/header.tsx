@@ -7,10 +7,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent } from "@/components/ui/card";
 import { Bell, Menu, Users } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 
 export default function Header() {
   const { user } = useAuth();
-
+  const [, setLocation] = useLocation();
+  
   const { data: unreadCount } = useQuery({
     queryKey: ["/api/notifications/unread-count"],
     enabled: !!user?.employee,
@@ -67,6 +69,34 @@ export default function Header() {
                   <Users className="text-primary-foreground text-sm" />
                 </div>
                 <h1 className="text-xl font-bold text-foreground">HRConnect</h1>
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center space-x-4">
+                <Button variant="ghost" onClick={() => setLocation("/dashboard")}>
+                  Dashboard
+                </Button>
+                <Button variant="ghost" onClick={() => setLocation("/performance")}>
+                  Performance
+                </Button>
+                <Button variant="ghost" onClick={() => setLocation("/messages")}>
+                messages
+                </Button>
+                <Button variant="ghost" onClick={() => setLocation("/timesheet")}>
+                  timesheet
+                </Button>
+                <Button variant="ghost" onClick={() => setLocation("/records")}>
+                  records
+                </Button>
+                <Button variant="ghost" onClick={() => setLocation("/pay")}>
+                  Pay
+                </Button>
+                <Button variant="ghost" onClick={() => setLocation("/leave")}>
+                  Leave
+                </Button>
+                <Button variant="ghost" onClick={() => setLocation("/documents")}>
+                  Documents
+                </Button>
               </div>
             </div>
             
