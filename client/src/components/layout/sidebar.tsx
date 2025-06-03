@@ -1,3 +1,4 @@
+import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,12 @@ import {
   Users, 
   Megaphone, 
   BarChart3,
-  LogOut
+  LogOut,
+  LayoutDashboard,
+  MessageSquare,
+  FileText,
+  Folder,
+  Settings,
 } from "lucide-react";
 
 const employeeNavItems = [
@@ -31,6 +37,59 @@ const adminNavItems = [
   { path: "/admin/reports", label: "Reports", icon: BarChart3 },
 ];
 
+const navigation = [
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Performance",
+    href: "/performance",
+    icon: BarChart3,
+  },
+  {
+    name: "Messages",
+    href: "/messages",
+    icon: MessageSquare,
+  },
+  {
+    name: "Timesheet",
+    href: "/timesheet",
+    icon: Clock,
+  },
+  {
+    name: "Records",
+    href: "/records",
+    icon: FileText,
+  },
+  {
+    name: "Pay",
+    href: "/pay",
+    icon: DollarSign,
+  },
+  {
+    name: "Leave",
+    href: "/leave",
+    icon: Calendar,
+  },
+  {
+    name: "Documents",
+    href: "/documents",
+    icon: Folder,
+  },
+  {
+    name: "Team",
+    href: "/team",
+    icon: Users,
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+  },
+];
+
 export default function Sidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
@@ -41,60 +100,53 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-card shadow-sm border-r border-border min-h-screen fixed lg:static lg:translate-x-0 transform -translate-x-full transition-transform z-30">
-      <nav className="p-6">
-        <ul className="space-y-2">
-          {/* Employee Navigation */}
-          {employeeNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            
-            return (
-              <li key={item.path}>
-                <Link href={item.path} className={cn("nav-link", isActive && "active")}>
-                  <Icon size={20} />
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-
-          {/* Admin Navigation */}
-          {isAdmin && (
-            <li className="pt-4 border-t border-border">
-              <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Admin
-              </p>
-              <ul className="space-y-2">
-                {adminNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location === item.path;
-                  
-                  return (
-                    <li key={item.path}>
-                      <Link href={item.path} className={cn("nav-link", isActive && "active")}>
-                        <Icon size={20} />
-                        <span>{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>
-          )}
-        </ul>
-
-        {/* Logout */}
-        <div className="mt-8 pt-8 border-t border-border">
-          <button 
-            onClick={handleLogout}
-            className="nav-link w-full text-left hover:bg-destructive/10 hover:text-destructive"
-          >
-            <LogOut size={20} />
-            <span>Sign Out</span>
-          </button>
+    <div className="w-64 min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white shadow-xl">
+      <div className="flex flex-col h-full">
+        <div className="flex-1 overflow-y-auto py-4">
+          <nav className="space-y-1 px-2">
+            {navigation.map((item) => {
+              const isActive = location === item.href;
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200",
+                    isActive
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg"
+                      : "text-gray-300 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-200",
+                      isActive
+                        ? "text-white"
+                        : "text-gray-400 group-hover:text-white"
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">{item.name}</span>
+                  {isActive && (
+                    <div className="absolute right-2 w-1 h-6 bg-white rounded-full" />
+                  )}
+                </a>
+              );
+            })}
+          </nav>
         </div>
-      </nav>
-    </aside>
+        <div className="p-4 border-t border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium">
+              U
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">User Name</p>
+              <p className="text-xs text-gray-400">user@example.com</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

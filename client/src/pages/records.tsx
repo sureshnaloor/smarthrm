@@ -1,227 +1,212 @@
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
-import Sidebar from "@/components/layout/sidebar";
-import Header from "@/components/layout/header";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { User, Building, Calendar, FileText, Phone, MapPin } from "lucide-react";
-import { format } from "date-fns";
+import Header from "@/components/layout/header";
+import Sidebar from "@/components/layout/sidebar";
+import { 
+  FileText,
+  Download,
+  Upload,
+  History,
+  Award,
+  GraduationCap,
+  Briefcase,
+  FileCheck,
+  FileX,
+  FileClock,
+  FileSearch,
+  FilePlus
+} from "lucide-react";
 
-export default function Records() {
-  const { user } = useAuth();
-  
-  const { data: documents, isLoading } = useQuery({
-    queryKey: ["/api/documents"],
-    enabled: !!user?.employee,
-  });
-
-  const { data: timeOffRequests } = useQuery({
-    queryKey: ["/api/timeoff/requests"],
-    enabled: !!user?.employee,
-  });
-
-  const employee = user?.employee;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 lg:ml-64 p-6">
-            <div className="flex items-center justify-center h-64">
-              <div className="spinner"></div>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
+export default function RecordsPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      {/* Header */}
       <Header />
+
       <div className="flex">
+        {/* Sidebar */}
         <Sidebar />
-        <main className="flex-1 lg:ml-64 p-6 space-y-6">
-          {/* Page Header */}
-          <div>
-            <h1 className="page-header">My Records</h1>
-            <p className="page-subtitle">View and manage your employment information</p>
+
+        {/* Main Content */}
+        <main className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Employee Records</h1>
+              <p className="text-muted-foreground">
+                Access and manage your employment documents
+              </p>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
+                  <FileText className="h-4 w-4 text-blue-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">24</div>
+                  <div className="flex items-center text-xs text-blue-200">
+                    <span>In your records</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Verified Documents</CardTitle>
+                  <FileCheck className="h-4 w-4 text-emerald-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">18</div>
+                  <div className="flex items-center text-xs text-emerald-200">
+                    <span>Approved by HR</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                  <FileClock className="h-4 w-4 text-amber-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">4</div>
+                  <div className="flex items-center text-xs text-amber-200">
+                    <span>Awaiting verification</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+                  <FileX className="h-4 w-4 text-purple-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">2</div>
+                  <div className="flex items-center text-xs text-purple-200">
+                    <span>Within 30 days</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              {/* Documents List */}
+              <Card className="col-span-4 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Recent Documents</CardTitle>
+                    <Button variant="outline" size="sm">
+                      <FileSearch className="h-4 w-4 mr-2" />
+                      Search
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { 
+                        title: "Employment Contract",
+                        type: "Contract",
+                        date: "Mar 15, 2024",
+                        status: "Verified",
+                        icon: FileCheck
+                      },
+                      { 
+                        title: "Tax Declaration Form",
+                        type: "Tax",
+                        date: "Mar 10, 2024",
+                        status: "Pending",
+                        icon: FileClock
+                      },
+                      { 
+                        title: "Professional Certification",
+                        type: "Certification",
+                        date: "Mar 5, 2024",
+                        status: "Verified",
+                        icon: Award
+                      },
+                      { 
+                        title: "Educational Transcript",
+                        type: "Education",
+                        date: "Mar 1, 2024",
+                        status: "Verified",
+                        icon: GraduationCap
+                      },
+                      { 
+                        title: "Work Experience Letter",
+                        type: "Experience",
+                        date: "Feb 28, 2024",
+                        status: "Pending",
+                        icon: Briefcase
+                      }
+                    ].map((doc, i) => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <doc.icon className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{doc.title}</p>
+                            <p className="text-xs text-gray-500">{doc.type} • {doc.date}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <span className={`text-sm font-medium ${
+                            doc.status === "Verified" ? "text-emerald-600" : "text-amber-600"
+                          }`}>
+                            {doc.status}
+                          </span>
+                          <Button variant="ghost" size="sm">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card className="col-span-3 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-4">
+                    <Button className="h-16 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <Upload className="h-5 w-5" />
+                        <span>Upload Document</span>
+                      </div>
+                    </Button>
+                    <Button className="h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <FilePlus className="h-5 w-5" />
+                        <span>Request New Document</span>
+                      </div>
+                    </Button>
+                    <Button className="h-16 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <History className="h-5 w-5" />
+                        <span>View Document History</span>
+                      </div>
+                    </Button>
+                    <Button className="h-16 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-5 w-5" />
+                        <span>View All Documents</span>
+                      </div>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-
-          {/* Personal Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="w-5 h-5" />
-                <span>Personal Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                    <p className="text-foreground">{user?.firstName} {user?.lastName}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Email</label>
-                    <p className="text-foreground">{user?.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Employee ID</label>
-                    <p className="text-foreground">{employee?.employeeId}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                    <p className="text-foreground">{employee?.phone || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Address</label>
-                    <p className="text-foreground">{employee?.address || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Status</label>
-                    <Badge className={employee?.status === "active" ? "status-active" : "status-inactive"}>
-                      {employee?.status}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Employment Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Building className="w-5 h-5" />
-                <span>Employment Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Department</label>
-                    <p className="text-foreground">{employee?.department}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Position</label>
-                    <p className="text-foreground">{employee?.position}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Start Date</label>
-                    <p className="text-foreground">
-                      {employee?.startDate ? format(new Date(employee.startDate), "MMMM d, yyyy") : "Not provided"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Employment Type</label>
-                    <p className="text-foreground">Full-time</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Time Off Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5" />
-                <span>Time Off Requests</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!timeOffRequests || timeOffRequests.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No time off requests found</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {timeOffRequests.map((request: any) => (
-                    <div key={request.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <Calendar className="text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground capitalize">{request.type}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(request.startDate), "MMM d")} - {format(new Date(request.endDate), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">{request.days} days</p>
-                        </div>
-                        <Badge 
-                          className={
-                            request.status === "approved" ? "status-active" :
-                            request.status === "pending" ? "status-pending" :
-                            "status-inactive"
-                          }
-                        >
-                          {request.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Documents */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="w-5 h-5" />
-                <span>Documents</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!documents || documents.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No documents available</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {documents.map((doc: any) => (
-                    <div key={doc.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/5 transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
-                          <FileText className="text-secondary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{doc.fileName}</p>
-                          <p className="text-sm text-muted-foreground capitalize">{doc.documentType}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(doc.createdAt), "MMM d, yyyy")}
-                        </p>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </main>
       </div>
     </div>

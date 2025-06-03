@@ -1,186 +1,218 @@
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
-import Sidebar from "@/components/layout/sidebar";
-import Header from "@/components/layout/header";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Download, DollarSign, Calendar } from "lucide-react";
-import { format } from "date-fns";
+import Header from "@/components/layout/header";
+import Sidebar from "@/components/layout/sidebar";
+import { 
+  DollarSign,
+  TrendingUp,
+  CreditCard,
+  Receipt,
+  FileText,
+  Download,
+  Calendar,
+  Banknote,
+  PiggyBank,
+  Percent,
+  ArrowUpRight,
+  ArrowDownRight,
+  History
+} from "lucide-react";
 
-export default function Pay() {
-  const { user } = useAuth();
-  
-  const { data: payRecords, isLoading } = useQuery({
-    queryKey: ["/api/pay/records"],
-    enabled: !!user?.employee,
-  });
-
-  const { data: latestPay } = useQuery({
-    queryKey: ["/api/pay/latest"],
-    enabled: !!user?.employee,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 lg:ml-64 p-6">
-            <div className="flex items-center justify-center h-64">
-              <div className="spinner"></div>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
+export default function PayPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      {/* Header */}
       <Header />
+
       <div className="flex">
+        {/* Sidebar */}
         <Sidebar />
-        <main className="flex-1 lg:ml-64 p-6 space-y-6">
-          {/* Page Header */}
-          <div>
-            <h1 className="page-header">Pay & Benefits</h1>
-            <p className="page-subtitle">View your salary information and pay history</p>
-          </div>
 
-          {/* Current Pay Summary */}
-          {latestPay && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Latest Net Pay</p>
-                      <p className="text-2xl font-bold text-foreground">
-                        ${Number(latestPay.netPay).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                      <DollarSign className="text-accent text-xl" />
-                    </div>
+        {/* Main Content */}
+        <main className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Pay & Compensation</h1>
+              <p className="text-muted-foreground">
+                View your salary details and payment history
+              </p>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Monthly Salary</CardTitle>
+                  <DollarSign className="h-4 w-4 text-blue-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">$8,500</div>
+                  <div className="flex items-center text-xs text-blue-200">
+                    <ArrowUpRight className="h-3 w-3 mr-1" />
+                    <span>5% increase from last month</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Pay Period</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {format(new Date(latestPay.payPeriodStart), "MMM d")} - {format(new Date(latestPay.payPeriodEnd), "MMM d")}
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Calendar className="text-primary text-xl" />
-                    </div>
+              <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Year-to-Date Earnings</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-emerald-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">$25,500</div>
+                  <div className="flex items-center text-xs text-emerald-200">
+                    <span>Q1 2024</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Annual Salary</p>
-                      <p className="text-2xl font-bold text-foreground">
-                        ${Number(user?.employee?.salary || 0).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                      <FileText className="text-secondary text-xl" />
-                    </div>
+              <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Tax Withheld</CardTitle>
+                  <Percent className="h-4 w-4 text-amber-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">$2,550</div>
+                  <div className="flex items-center text-xs text-amber-200">
+                    <span>30% of monthly salary</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Next Payment</CardTitle>
+                  <Calendar className="h-4 w-4 text-purple-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">Mar 31, 2024</div>
+                  <div className="flex items-center text-xs text-purple-200">
+                    <span>Net: $5,950</span>
                   </div>
                 </CardContent>
               </Card>
             </div>
-          )}
 
-          {/* Pay History */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Pay History</CardTitle>
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export All
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!payRecords || payRecords.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No pay records found</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {payRecords.map((record: any) => (
-                    <div key={record.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/5 transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
-                          <FileText className="text-accent" />
+            {/* Main Content Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              {/* Payment History */}
+              <Card className="col-span-4 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Payment History</CardTitle>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { 
+                        month: "March 2024",
+                        date: "Mar 15, 2024",
+                        amount: "$8,500",
+                        status: "Paid",
+                        type: "Regular Salary",
+                        icon: Banknote
+                      },
+                      { 
+                        month: "February 2024",
+                        date: "Feb 15, 2024",
+                        amount: "$8,100",
+                        status: "Paid",
+                        type: "Regular Salary",
+                        icon: Banknote
+                      },
+                      { 
+                        month: "January 2024",
+                        date: "Jan 15, 2024",
+                        amount: "$8,100",
+                        status: "Paid",
+                        type: "Regular Salary",
+                        icon: Banknote
+                      },
+                      { 
+                        month: "December 2023",
+                        date: "Dec 15, 2023",
+                        amount: "$8,100",
+                        status: "Paid",
+                        type: "Regular Salary",
+                        icon: Banknote
+                      },
+                      { 
+                        month: "November 2023",
+                        date: "Nov 15, 2023",
+                        amount: "$8,100",
+                        status: "Paid",
+                        type: "Regular Salary",
+                        icon: Banknote
+                      }
+                    ].map((payment, i) => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <payment.icon className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{payment.month}</p>
+                            <p className="text-xs text-gray-500">{payment.type} • {payment.date}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {format(new Date(record.payPeriodStart), "MMMM yyyy")}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Pay Period: {format(new Date(record.payPeriodStart), "MMM d")} - {format(new Date(record.payPeriodEnd), "MMM d")}
-                          </p>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{payment.amount}</p>
+                            <p className="text-xs text-gray-500">{payment.status}</p>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <Receipt className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <p className="font-bold text-foreground">${Number(record.netPay).toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">Net Pay</p>
-                        </div>
-                        <Badge variant="secondary" className="capitalize">
-                          {record.payType}
-                        </Badge>
-                        <Button variant="ghost" size="sm">
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Benefits Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Benefits Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold text-foreground mb-3">Health Insurance</h3>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-muted-foreground">Plan: Premium Health Plan</p>
-                    <p className="text-muted-foreground">Coverage: Employee + Family</p>
-                    <p className="text-muted-foreground">Monthly Premium: $250</p>
+              {/* Quick Actions */}
+              <Card className="col-span-3 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-4">
+                    <Button className="h-16 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <Receipt className="h-5 w-5" />
+                        <span>View Payslip</span>
+                      </div>
+                    </Button>
+                    <Button className="h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-5 w-5" />
+                        <span>Tax Documents</span>
+                      </div>
+                    </Button>
+                    <Button className="h-16 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <PiggyBank className="h-5 w-5" />
+                        <span>Savings & Benefits</span>
+                      </div>
+                    </Button>
+                    <Button className="h-16 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-center space-x-2">
+                        <History className="h-5 w-5" />
+                        <span>Payment History</span>
+                      </div>
+                    </Button>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground mb-3">Retirement</h3>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-muted-foreground">401(k) Contribution: 5%</p>
-                    <p className="text-muted-foreground">Company Match: 3%</p>
-                    <p className="text-muted-foreground">Vesting: 100% after 3 years</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </main>
       </div>
     </div>

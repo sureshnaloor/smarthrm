@@ -78,7 +78,7 @@ export default function AdminEmployees() {
     addEmployeeMutation.mutate(data);
   };
 
-  if (!user?.employee?.isAdmin) {
+  if (user?.employee?.isAdmin) {
     return (
       <div className="min-h-screen bg-background">
         <Header />

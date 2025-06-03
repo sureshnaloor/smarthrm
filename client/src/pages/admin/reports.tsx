@@ -44,7 +44,7 @@ export default function AdminReports() {
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--warning))', 'hsl(var(--destructive))'];
 
-  if (!user?.employee?.isAdmin) {
+  if (user?.employee?.isAdmin) {
     return (
       <div className="min-h-screen bg-background">
         <Header />

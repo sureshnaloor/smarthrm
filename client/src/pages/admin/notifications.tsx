@@ -93,7 +93,7 @@ export default function AdminNotifications() {
     }
   };
 
-  if (!user?.employee?.isAdmin) {
+  if (user?.employee?.isAdmin) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
