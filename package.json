@@ -10,9 +10,11 @@
     "check": "tsc",
     "db:create": "node -r dotenv/config node_modules/.bin/tsx create-db.ts",
     "db:push": "node -r dotenv/config node_modules/.bin/drizzle-kit push",
-    "client:dev": "vite"
+    "client:dev": "vite",
+    "update-ip": "node -r dotenv/config node_modules/.bin/tsx server/scripts/updateIp.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.823.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@radix-ui/react-accordion": "^1.2.4",
@@ -46,6 +48,7 @@
     "@types/cors": "^2.8.18",
     "@types/memoizee": "^0.4.12",
     "@types/pg": "^8.15.2",
+    "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
