@@ -15,6 +15,16 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 
+// Extend express-session types to include 'email'
+import "express-session";
+
+declare module "express-session" {
+  interface SessionData {
+    email?: string;
+    userId?: string;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -48,18 +58,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const email = req.session.email;
+      if (!email) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      // Fetch user and employee data
+      const user = await storage.getUserByEmail(email);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      const employee = await storage.getEmployeeByUserId(userId);
+      
       
       res.json({
         ...user,
-        employee,
+        
       });
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -93,6 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set session
       req.session.userId = user.id;
+      req.session.email = user.email;
       
       // Send response with user data (excluding password)
       res.status(201).json({
@@ -134,6 +149,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set session
       req.session.userId = user.id;
+      req.session.email = user.email;
+      req.session.save();
       
       res.json({
         message: "Login successful",

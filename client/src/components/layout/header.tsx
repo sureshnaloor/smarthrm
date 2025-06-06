@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Header() {
   const { user } = useAuth();
+  // console.log("Header user:", user);
   const [, setLocation] = useLocation();
   
   const { data: unreadCount } = useQuery({
@@ -63,6 +64,9 @@ export default function Header() {
 
   return (
     <>
+    {/* <pre style={{ color: "white", background: "#222", padding: 8, margin: 8, borderRadius: 4 }}>
+        {JSON.stringify(user, null, 2)}
+      </pre> */}
       <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
         <div className="container flex h-16 items-center px-4">
           <div className="flex items-center space-x-4">
@@ -98,7 +102,7 @@ export default function Header() {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="/avatars/01.png" alt="User" />
                       <AvatarFallback className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white">
-                        U
+                        {getInitials(user?.firstName, user?.lastName)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -106,9 +110,11 @@ export default function Header() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">User Name</p>
+                      <p className="text-sm font-medium leading-none">
+                        {user?.firstName} {user?.lastName}
+                      </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        user@example.com
+                        {user?.email ||  "user@example.com"} 
                       </p>
                     </div>
                   </DropdownMenuLabel>

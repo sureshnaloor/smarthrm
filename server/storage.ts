@@ -218,7 +218,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(employees)
       .where(eq(employees.userId, userId));
-    return employee;
+    return employee ? (employee.employees ?? employee) : undefined;
   }
 
   async getEmployee(id: number): Promise<Employee | undefined> {
@@ -237,10 +237,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
-    const [newEmployee] = await db
+    const result = await db
       .insert(employees)
       .values(employee)
-      .returning();
+      .returning() as any[];
+    const [newEmployee] = result;
     return newEmployee;
   }
 
@@ -825,18 +826,22 @@ export class DatabaseStorage implements IStorage {
 
   // Timesheet operations
   async getTimesheetEntriesByEmployee(employeeId: number, startDate?: string, endDate?: string): Promise<TimesheetEntry[]> {
-    let query = db.select().from(timesheetEntries).where(eq(timesheetEntries.employeeId, employeeId));
-    
+    let whereClause;
     if (startDate && endDate) {
-      query = query.where(
-        and(
-          sql`${timesheetEntries.workDate} >= ${startDate}`,
-          sql`${timesheetEntries.workDate} <= ${endDate}`
-        )
+      whereClause = and(
+        eq(timesheetEntries.employeeId, employeeId),
+        sql`${timesheetEntries.workDate} >= ${startDate}`,
+        sql`${timesheetEntries.workDate} <= ${endDate}`
       );
+    } else {
+      whereClause = eq(timesheetEntries.employeeId, employeeId);
     }
-    
-    return await query.orderBy(desc(timesheetEntries.workDate));
+
+    return await db
+      .select()
+      .from(timesheetEntries)
+      .where(whereClause)
+      .orderBy(desc(timesheetEntries.workDate));
   }
 
   async getTimesheetEntriesByPeriod(period: string): Promise<TimesheetEntry[]> {
@@ -1095,7 +1100,7 @@ export class DatabaseStorage implements IStorage {
           isManualEntry: false
         });
       } catch (error) {
-        errors.push({ row: i + 1, error: error.message });
+        errors.push({ row: i + 1, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
